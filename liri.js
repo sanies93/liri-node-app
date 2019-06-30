@@ -3,6 +3,7 @@ require("dotenv").config();
 var fs = require("fs");
 var axios = require("axios");
 var keys = require("./keys.js");
+var moment = require("moment");
 var Spotify = require("node-spotify-api");
 var spotify = new Spotify(keys.spotify);
 
@@ -33,6 +34,27 @@ switch (type) {
     console.log("Enter command: \n'concert-this <artist/band name here>' \n'spotify-this-song <song name here>' \n'movie-this <movie name here>' \n'do-what-it-says'");
 };
 
+function concert() {
+  var URL = "https://rest.bandsintown.com/artists/" + search + "/events?app_id=codingbootcamp";
+  axios.get(URL).then(function (response) {
+    var data = response.data;
+    console.log(divider);
+    console.log(divider);
+    var info = [
+      "Venue: " + data[0].venue.name,
+      "City: " + data[0].venue.city,
+      "Date: " + moment(data[0].datetime).format("MM/DD/YYYY")
+    ].join("\n\n");
+
+    fs.appendFile("log.txt", info + divider, function (err) {
+      if (err) throw err;
+      console.log(info);
+    });
+  }).catch(function (err) {
+    console.log(err);
+  });
+}
+
 function song() {
   if (search === "") {
     search = "Ace of Base The Sign";
@@ -41,6 +63,8 @@ function song() {
     .search({ type: 'track', query: search, limit: 1 })
     .then(function (response) {
       var track = response.tracks.items;
+      console.log(divider);
+      console.log(divider);
       var info = [
         "Artist: " + track[0].artists[0].name,
         "Song: " + track[0].name,
@@ -49,9 +73,7 @@ function song() {
       ].join("\n\n");
 
       fs.appendFile("log.txt", info + divider, function (err) {
-        if (err) {
-          return console.log(err);
-        }
+        if (err) throw err;
         console.log(info);
       });
     })
@@ -67,6 +89,8 @@ function movie() {
   var URL = "http://www.omdbapi.com/?t=" + search + "&y=&plot=short&apikey=trilogy";
   axios.get(URL).then(function (response) {
     var data = response.data;
+    console.log(divider);
+    console.log(divider);
     var info = [
       "Movie: " + data.Title,
       "Year: " + data.Year,
@@ -79,12 +103,35 @@ function movie() {
     ].join("\n\n");
 
     fs.appendFile("log.txt", info + divider, function (err) {
-      if (err) {
-        return console.log(err);
-      }
+      if (err) throw err;
       console.log(info);
     });
   }).catch(function (err) {
     console.log(err);
+  });
+}
+
+function doWhatItSays() {
+  fs.readFile("random.txt", "utf8", function (err, data) {
+    if (err) throw err;
+    console.log(divider);
+    console.log(divider);
+    var dataFormatted = data.split(",");
+    console.log(dataFormatted);
+    type = dataFormatted[0];
+    search = dataFormatted[1];
+    switch (type) {
+      case "concert-this":
+        concert();
+        break;
+
+      case "spotify-this-song":
+        song();
+        break;
+
+      case "movie-this":
+        movie();
+        break;
+    }
   });
 }
